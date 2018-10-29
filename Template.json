@@ -1,0 +1,95 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "A simple AWS SNS implementation with AWS CloudFormation. More informations contact Helio Nogueira <helio.nogueira@gmail.com>.",
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "QueueName": "helionogueir-simple-aws-cloudformation-sns",
+                "MessageRetentionPeriod": 864000,
+                "ReceiveMessageWaitTimeSeconds": 0,
+                "VisibilityTimeout": 30
+            }
+        },
+        "PubSub": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "TopicName": "helionogueir-simple-aws-cloudformation-sns",
+                "DisplayName": "simple-aws-cloudformation-sns",
+                "Subscription": [{
+                    "Endpoint": {
+                        "Fn::GetAtt": ["Queue", "Arn"]
+                    },
+                    "Protocol": "sqs"
+                }]
+            },
+            "DependsOn": ["Queue"]
+        },
+        "QueuePolicy": {
+            "Type": "AWS::SQS::QueuePolicy",
+            "Properties": {
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Id": {
+                        "Fn::Join": ["/", [{
+                                "Fn::GetAtt": ["Queue", "Arn"]
+                            },
+                            "SQSDefaultPolicy"
+                        ]]
+                    },
+                    "Statement": [{
+                        "Effect": "Allow",
+                        "Principal": "*",
+                        "Action": "SQS:SendMessage",
+                        "Resource": {
+                            "Fn::GetAtt": ["Queue", "Arn"]
+                        },
+                        "Condition": {
+                            "ArnEquals": {
+                                "aws:SourceArn": {
+                                    "Ref": "PubSub"
+                                }
+                            }
+                        }
+                    }]
+                },
+                "Queues": [{
+                    "Ref": "Queue"
+                }]
+            },
+            "DependsOn": ["Queue", "PubSub"]
+        }
+    },
+    "Outputs": {
+        "QueueName": {
+            "Description": "Queue Name",
+            "Value": {
+                "Fn::GetAtt": ["Queue", "QueueName"]
+            }
+        },
+        "QueueARN": {
+            "Description": "Queue ARN",
+            "Value": {
+                "Fn::GetAtt": ["Queue", "Arn"]
+            }
+        },
+        "QueueURL": {
+            "Description": "Queue URL",
+            "Value": {
+                "Ref": "Queue"
+            }
+        },
+        "PubSubName": {
+            "Description": "Pub / Sub Name",
+            "Value": {
+                "Fn::GetAtt": ["PubSub", "TopicName"]
+            }
+        },
+        "PubSubARN": {
+            "Description": "Pub / Sub ARN",
+            "Value": {
+                "Ref": "PubSub"
+            }
+        }
+    }
+}
